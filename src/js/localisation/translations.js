@@ -24,6 +24,7 @@ angular.module('blocktrail.localisation', [
             DONE: "done",
             CONFIRM: "confirm",
             APPLY: "apply",
+            APPLY_CHANGES: "apply changes",
             ENABLE: "enable",
             DISABLE: "disable",
             ENABLED: "enabled",
@@ -259,8 +260,13 @@ angular.module('blocktrail.localisation', [
             SETTINGS_TOKEN_PLACEHOLDER: "verification code",
             SETTINGS_PHONE_REQUIRE_VERIFY: "phone verification required",
             SETTINGS_PRIVACY: "privacy",
-            SETTINGS_ENCRYPTION: "encryption",
             SETTINGS_USAGE_DATA: "send usage data",
+            SETTINGS_ENCRYPTION: "encryption",
+
+            SETTINGS_ENCRYPTION_DESCRIPTION: "For greater privacy you can enable additional encryption for your synced data.",
+            SETTINGS_ENCRYPTION_FOOTNOTE: "If you forget your password you run the risk of losing the ability to decrypt and use this data.",
+            SETTINGS_ENCRYPT_CONTACTS: "Phone contacts",
+            SETTINGS_ENCRYPT_MEMOS: "private transaction memos",
 
             SETTINGS_CURRENT_PIN: "Current PIN",
             SETTINGS_NEW_PIN: "New PIN",

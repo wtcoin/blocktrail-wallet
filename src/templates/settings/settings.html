@@ -155,6 +155,15 @@
 
             <h3 class="group-title capitalise">{{ 'SETTINGS_PRIVACY' | translate }}</h3>
             <div class="list list-inset">
+
+                <div class="item item-button-right" ui-sref=".encryption">
+                    <span class="sentence-case">{{ 'SETTINGS_ENCRYPTION' | translate }}</span>
+                    <button class="button button-clear">
+                        <i class="icon ion-chevron-right"></i>
+                    </button>
+                </div>
+                <!-- /encryption -->
+
                 <div class="item item-toggle">
                     <span class="sentence-case">{{ 'SETTINGS_USAGE_DATA' | translate }}</span>
                     <label class="toggle toggle-balanced">
@@ -164,6 +173,7 @@
                         </div>
                     </label>
                 </div>
+                <!-- /usage data -->
             </div>
 
 

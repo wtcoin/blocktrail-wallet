@@ -3,20 +3,57 @@
 // -------------------------------
 
 .slide-in-up {
-  @include translate3d(0, 100%, 0);
+    @include translate3d(0, 100%, 0);
 }
 .slide-in-up.ng-enter,
 .slide-in-up > .ng-enter {
-  @include transition(all cubic-bezier(.1, .7, .1, 1) 400ms);
+    @include transition(all cubic-bezier(.1, .7, .1, 1) 400ms);
 }
 .slide-in-up.ng-enter-active,
 .slide-in-up > .ng-enter-active {
-  @include translate3d(0, 0, 0);
+    @include translate3d(0, 0, 0);
 }
 
 .slide-in-up.ng-leave,
 .slide-in-up > .ng-leave {
-  @include transition(all ease-in-out 250ms);
+    @include transition(all ease-in-out 250ms);
+}
+
+//simple Hide-Show animation for ng-show and ng-hide
+.animate-show,
+.animate-show-section {
+    &.ng-hide-add,
+    &.ng-hide-remove {
+        transition:0.5s linear all;
+        display:block!important;
+    }
+    &.ng-hide-add {
+        opacity:1;
+    }
+    &.ng-hide-add.ng-hide-add-active {
+        opacity:0;
+    }
+
+    &.ng-hide-remove {
+        opacity:0;
+    }
+    &.ng-hide-remove.ng-hide-remove-active {
+        opacity:1;
+        overflow: hidden;
+    }
+}
+.animate-show-section{
+    &.ng-hide-add {
+        height: 18.5rem;
+        overflow: hidden;
+    }
+    &.ng-hide-add.ng-hide-add-active {
+        height: 0rem;
+        overflow: hidden;
+    }
+    &.ng-hide-remove.ng-hide-remove-active {
+        overflow: hidden;
+    }
 }
 
 
@@ -25,12 +62,12 @@
 // -------------------------------
 
 @-webkit-keyframes scaleOut {
-  from { -webkit-transform: scale(1); opacity: 1; }
-  to { -webkit-transform: scale(0.8); opacity: 0; }
+    from { -webkit-transform: scale(1); opacity: 1; }
+    to { -webkit-transform: scale(0.8); opacity: 0; }
 }
 @keyframes scaleOut {
-  from { transform: scale(1); opacity: 1; }
-  to { transform: scale(0.8); opacity: 0; }
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(0.8); opacity: 0; }
 }
 
 
@@ -39,10 +76,10 @@
 // -------------------------------
 
 @-webkit-keyframes superScaleIn {
-  from { -webkit-transform: scale(1.2); opacity: 0; }
-  to { -webkit-transform: scale(1); opacity: 1 }
+    from { -webkit-transform: scale(1.2); opacity: 0; }
+    to { -webkit-transform: scale(1); opacity: 1 }
 }
 @keyframes superScaleIn {
-  from { transform: scale(1.2); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+    from { transform: scale(1.2); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }

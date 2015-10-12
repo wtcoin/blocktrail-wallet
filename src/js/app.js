@@ -706,6 +706,19 @@ angular.module('blocktrail.wallet').config(
                     }
                 }
             })
+            .state('app.wallet.settings.encryption', {
+                url: "/encryption",
+                cache: true,
+                data: {
+                    clearHistory: false
+                },
+                views: {
+                    "mainView@app.wallet": {
+                        templateUrl: "templates/settings/settings.encryption.html",
+                        controller: 'EncryptionSettingsCtrl'
+                    }
+                }
+            })
             .state('app.wallet.settings.about', {
                 url: "/about",
                 cache: true,

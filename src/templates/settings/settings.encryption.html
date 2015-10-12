@@ -1,0 +1,76 @@
+<ion-view class="state-settings state-encryption">
+    <ion-nav-title class="capitalise">{{ 'SETTINGS_ENCRYPTION' | translate }}</ion-nav-title>
+
+    <ion-content>
+
+        <div class="group-title"></div>
+        <div class="list list-inset margin-t">
+            <div class="item item-body">
+                {{ 'SETTINGS_ENCRYPTION_DESCRIPTION' | translate }}<br>
+
+                <p class="italics padding-b">
+                    <b>NB:</b> {{ 'SETTINGS_ENCRYPTION_FOOTNOTE' | translate }}
+                </p>
+
+
+                <button ng-if="!settings.enableEncryption" class="button button-block button-positive capitalise"
+                        ng-click="enableEncryption()">{{ 'ENABLE' | translate }}
+                </button>
+            </div>
+            <!--
+            <div class="item item-divider">
+                <small class="pull-left padding-t">Want to learn more?</small>
+                <button class="button button-small pull-right" ng-click="rateApp()">read more!</button>
+            </div>
+            -->
+
+            <div class="animate-show-section" ng-hide="!settings.enableEncryption">
+                <div class="item item-divider">
+                    <small class="pull-right">
+                        <span ng-if="!appControl.working && settings.contactsLastSync">{{ 'SETTINGS_CONTACTS_SYNCED' | translate }}</span>
+                        <span ng-if="!appControl.working && !settings.contactsLastSync">{{ 'SETTINGS_CONTACTS_UNSYNCED' | translate }}</span>
+                        <span ng-if="appControl.working">{{ 'SYNCING' | translate }}...</span>
+                        <span class="text-neutral opacity-50" ng-if="settings.enableContacts && settings.contactsLastSync && !appControl.syncing">
+                            ({{ settings.contactsLastSync | amDateFormat:'Do MMM YYYY' }})
+                        </span>
+                    </small>
+                </div>
+
+                <div class="item item-toggle">
+                    <span class="sentence-case">{{ 'SETTINGS_ENCRYPT_CONTACTS' | translate }}</span>
+                    <label class="toggle toggle-balanced">
+                        <input type="checkbox" ng-model="settings.encryptContacts" ng-change="appControl.changesMade = true" ng-disabled="appControl.working">
+                        <div class="track">
+                            <div class="handle"></div>
+                        </div>
+                    </label>
+                </div>
+                <!-- /tx memos -->
+
+
+                <div class="item item-toggle">
+                    <span class="sentence-case">{{ 'SETTINGS_ENCRYPT_MEMOS' | translate }}</span>
+                    <label class="toggle toggle-balanced">
+                        <input type="checkbox" ng-model="settings.encryptMemos" ng-change="appControl.changesMade = true" ng-disabled="appControl.working">
+                        <div class="track">
+                            <div class="handle"></div>
+                        </div>
+                    </label>
+                </div>
+                <!-- /contacts data -->
+
+                <div class="item">
+                    <button class="button button-block button-positive capitalise"
+                            ng-class="{'button-neutral': !appControl.changesMade, 'button-positive': appControl.working}"
+                            ng-click="updateEncryption()"
+                            ng-disabled="appControl.working">
+                        <span ng-if="!appControl.working">{{ 'APPLY_CHANGES' | translate }}</span>
+                        <span ng-if="appControl.working">{{ 'SYNCING' | translate }}</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </ion-content>
+</ion-view>

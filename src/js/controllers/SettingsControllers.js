@@ -1170,6 +1170,77 @@ angular.module('blocktrail.wallet')
                 });
         };
     })
+    .controller('EncryptionSettingsCtrl', function($scope, settingsService, launchService, $btBackButtonDelegate,
+                                                   $translate, $q, $cordovaDialogs, $ionicLoading, $http, CONFIG) {
+        $scope.appControl = {
+            working: false,
+            changesMade: false,
+        };
+        $scope.accountInfo = null;
+        $scope.password = null;
+
+        $scope.enableEncryption = function() {
+            //confirm user password, and save encrypted secret if doesn't exist
+            $q.when(launchService.getAccountInfo())
+                .then(function(accountInfo) {
+                    $scope.accountInfo = accountInfo;
+                })
+                .then(function() {
+                    return $cordovaDialogs.prompt(
+                        $translate.instant('MSG_ENTER_PIN').sentenceCase(),
+                        $translate.instant('SETTINGS_CHANGE_PIN').capitalize(),
+                        [$translate.instant('OK'), $translate.instant('CANCEL').sentenceCase()]
+                    );
+                })
+                .then(function(dialogResult) {
+                    if (dialogResult.buttonIndex == 2) {
+                        return $q.reject('CANCELLED');
+                    } else {
+                        $scope.password = dialogResult.input1;
+                    }
+
+                    $ionicLoading.show({template: "<div>{{ 'WORKING' | translate }}...</div><ion-spinner></ion-spinner>", hideOnStateChange: true});
+
+                    return $http.post(CONFIG.API_URL + "/v1/BTC/mywallet/check", {
+                        login: $scope.accountInfo.email || $scope.accountInfo.username,
+                        password: CryptoJS.SHA512($scope.password).toString()
+                    });
+                })
+                .then(function() {
+                    //password is correct, take the chance to encrypt secret if not already done
+                    if (!$scope.accountInfo.encrypted_secret) {
+                        $scope.accountInfo.encrypted_secret = CryptoJS.AES.encrypt($scope.accountInfo.secret, $scope.password).toString();
+                        launchService.storeAccountInfo($scope.accountInfo);
+                    }
+
+                    settingsService.enableEncryption = true;
+                    $ionicLoading.hide();
+
+                    return settingsService.$store();
+                })
+                .catch(function(err) {
+                    $ionicLoading.hide();
+                    if (err && err.status == 401) {
+                        //incorrect PIN...try again Mr. user
+                        $cordovaDialogs.alert($translate.instant('MSG_TRY_AGAIN').sentenceCase(), $translate.instant('MSG_BAD_PIN').capitalize(), $translate.instant('OK')).then(function() {
+                            $scope.enableEncryption();
+                        });
+                    } else if (err === 'CANCELLED') {
+                        return false;
+                    } else {
+                        $cordovaDialogs.alert(err.toString(), $translate.instant('FAILED').capitalize(), $translate.instant('OK'));
+                    }
+                });
+        };
+
+        $scope.updateEncryption = function() {
+            if ($scope.appControl.working || !$scope.appControl.changesMade) {
+                return false;
+            }
+
+            $scope.appControl.working = true;
+        };
+    })
     .controller('AboutSettingsCtrl', function($scope, settingsService, $btBackButtonDelegate, $cordovaAppRate) {
         $scope.rateApp = function() {
             $cordovaAppRate.navigateToAppStore()

@@ -33,6 +33,10 @@ angular.module('blocktrail.wallet').service(
         contactsLastSync: null,
         contactsWebSync: true,      //enable syncing contacts to web wallet
 
+        enableEncryption: false,    //enable data encryption clientside on the device
+        encryptContacts: true,
+        encryptMemos: true,
+
         backupSaved: false,
         backupSkipped: false,
         setupStarted: false,
