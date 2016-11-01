@@ -1131,3 +1131,15 @@ window.QforEachLimit = function(list, n, fn) {
         ;
     })();
 };
+
+window.Qwaterfall = function(fns, arg) {
+    var p = Q.when(arg);
+
+    fns.slice().forEach(function(fn) {
+        p = p.then(function(arg) {
+            return fn(arg);
+        });
+    });
+
+    return p;
+};

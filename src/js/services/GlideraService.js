@@ -1,9 +1,13 @@
 angular.module('blocktrail.wallet').factory(
     'glideraService',
-    function(CONFIG, $log, $q, Wallet, $cordovaDialogs, $translate, $http, $timeout, $ionicLoading, settingsService) {
-        var clientId = "9074010d6e573bd7b06645735ba315c8";
-        var clientSecret = "02cc9562bd2049b6fadb88578bc4c723";
-        var returnuri = "btccomwallet://glideraCallback";
+    function(CONFIG, $log, $q, Wallet, $cordovaDialogs, $translate, sdkService,
+             $http, $timeout, $ionicLoading, settingsService) {
+        var clientId;
+        var returnuri = "btccomwallet://glideraCallback/oauth2";
+
+        var encodeOpenURI = function(uri) {
+            return uri.replace('#', '%23');
+        };
 
         var decryptedAccessToken = null;
 
@@ -39,7 +43,7 @@ angular.module('blocktrail.wallet').factory(
 
         var oauth2 = function() {
             var uuid = Math.ceil((new Date).getTime() / 1000);
-            var scope = ['transact'].join(',');
+            var scope = ['transact', 'transaction_history'].join(' ');
             var qs = [
                 'response_type=code',
                 'client_id=' + clientId,
@@ -47,20 +51,20 @@ angular.module('blocktrail.wallet').factory(
                 'scope=' + scope,
                 'required_scope=' + scope,
                 'login_hint=' + (settingsService.email || "").replace(/\+.*@/, "@"), // name+label@mail.com isn't supported by glidera
-                'redirect_uri=' + returnuri + "/oauth2"
+                'redirect_uri=' + returnuri
             ];
 
             var glideraUrl = "https://sandbox.glidera.io/oauth2/auth?" + qs.join("&");
 
             $log.debug('oauth2', glideraUrl);
 
-            window.open(glideraUrl, '_system');
+            window.open(encodeOpenURI(glideraUrl), '_system');
         };
 
         var setup = function() {
             return accessToken().then(function(accessToken) {
                 var qs = [
-                    'redirect_uri=' + returnuri + "/oauth2",
+                    'redirect_uri=' + returnuri,
                     'access_token=' + accessToken
                 ];
 
@@ -68,7 +72,7 @@ angular.module('blocktrail.wallet').factory(
 
                 $log.debug('setup', glideraUrl);
 
-                window.open(glideraUrl, '_system');
+                window.open(encodeOpenURI(glideraUrl), '_system');
             });
         };
 
@@ -87,25 +91,19 @@ angular.module('blocktrail.wallet').factory(
                         throw new Error(qs.error_message.replace("+", " "));
                     }
 
-                    var r = createRequest();
 
-                    return r.request('POST', '/oauth/token', {}, {
-                        grant_type: "authorization_code",
-                        code: qs.code,
-                        redirect_uri: returnuri + "/oauth2",
-                        client_id: clientId,
-                        client_secret: clientSecret
-                    })
-                        .then(function(result) {
-                            $log.debug('oauthtoken', JSON.stringify(result, null, 4));
+                    return sdkService.sdk().then(function(sdk) {
+                        return sdk.glideraOauth(qs.code, returnuri, true)
+                            .then(function(result) {
+                                $log.debug('oauthtoken', JSON.stringify(result, null, 4));
 
-                            var accessToken = result.access_token;
-                            var glideraAccessToken = {
-                                scope: result.scope
-                            };
+                                var accessToken = result.access_token;
+                                var glideraAccessToken = {
+                                    scope: result.scope
+                                };
 
-                            return settingsService.$isLoaded().then(function() {
-                                return $cordovaDialogs.prompt(
+                                return settingsService.$isLoaded().then(function() {
+                                    return $cordovaDialogs.prompt(
                                         $translate.instant('MSG_BUYBTC_PIN_TO_ENCRYPT').sentenceCase(),
                                         $translate.instant('MSG_ENTER_PIN').sentenceCase(),
                                         [$translate.instant('OK'), $translate.instant('CANCEL').sentenceCase()],
@@ -155,6 +153,7 @@ angular.module('blocktrail.wallet').factory(
                             })
                         ;
                     })
+                })
                 .then(function(result) { return result }, function(err) { $log.log(err); throw err; })
             ;
         };
@@ -390,7 +389,23 @@ angular.module('blocktrail.wallet').factory(
                                 .then(function(result) {
                                     $log.debug('buy', JSON.stringify(result, null, 4));
 
-                                    return result;
+                                    settingsService.glideraTransactions.push({
+                                        transactionUuid: result.transactionUuid,
+                                        transactionHash: result.transactionHash || null,
+                                        status: result.status,
+                                        qty: result.qty,
+                                        price: result.price,
+                                        total: result.total,
+                                        currency: result.currency
+                                    });
+
+                                    return settingsService.$store().then(function() {
+                                        return settingsService.$syncSettingsUp().then(function() {
+                                            updatePendingTransactions();
+
+                                            return result;
+                                        });
+                                    });
                                 })
                             ;
                         });
@@ -399,7 +414,163 @@ angular.module('blocktrail.wallet').factory(
             });
         };
 
+
+        var setClientId = function(_clientId) {
+            clientId = _clientId;
+        };
+
+        var pollPendingTransactions = true;
+        var $updateStatus;
+        var updatePendingTransactions = function() {
+            $updateStatus = $q.defer();
+
+            var _update = function() {
+                pollPendingTransactions = false;
+                var delay = 10000;
+
+                return $q.when(decryptedAccessToken).then(function(accessToken) {
+                    if (accessToken) {
+                        var updateStatus = {};
+
+                        $q.all(settingsService.glideraTransactions.map(function(transaction) {
+                            if (transaction.status === 'PROCESSING' || !transaction.transactionHash) {
+                                pollPendingTransactions = true;
+                                var r = createRequest(null, accessToken);
+                                return r.request('GET', '/transaction/' + transaction.transactionUuid, {})
+                                    .then(function(result) {
+                                        updateStatus[transaction.transactionUuid] = result;
+                                    })
+                                    ;
+                            } else {
+                                return $q.when(null);
+                            }
+                        }))
+                            .then(function() {
+                                settingsService.glideraTransactions = settingsService.glideraTransactions.map(function(transaction) {
+                                    if (typeof updateStatus[transaction.transactionUuid] !== "undefined") {
+                                        var newTxInfo = updateStatus[transaction.transactionUuid];
+                                        var oldStatus = transaction.status;
+
+                                        // sometimes a tx is marked COMPLETE but missing a transactionHash,
+                                        //  in that case we force another update
+                                        if (newTxInfo.status === 'COMPLETE' && !newTxInfo.transactionHash) {
+                                            delay = 0;
+                                        } else {
+                                            transaction.qty = newTxInfo.qty;
+                                            transaction.status = newTxInfo.status;
+                                            transaction.transactionHash = newTxInfo.transactionHash;
+
+                                            if (oldStatus === 'PROCESSING' && transaction.status === 'COMPLETE') {
+                                                $rootScope.$broadcast('glidera_complete', transaction);
+                                            }
+                                        }
+                                    }
+
+                                    return transaction;
+                                });
+
+                                return settingsService.$store().then(function() {
+                                    return settingsService.$syncSettingsUp();
+                                });
+                            })
+                        ;
+                    }
+                })
+                    .then(function() {
+                    }, function(e) {
+                        $log.error('updatePendingTransactions ' + e);
+                    })
+                    .then(function() {
+                        if (delay) {
+                            $updateStatus.resolve();
+
+                            if (pollPendingTransactions) {
+                                $timeout(updatePendingTransactions, delay);
+                            }
+                        } else {
+                            // do it again
+                            return _update();
+                        }
+                    })
+                    ;
+            };
+
+            _update();
+        };
+        var updateAllTransactions = function() {
+            $updateStatus = $q.defer();
+
+            return $q.when(decryptedAccessToken).then(function(accessToken) {
+                if (accessToken) {
+                    var updateTxs = [];
+
+                    var r = createRequest(null, accessToken);
+                    return r.request('GET', '/transaction', {})
+                        .then(function(results) {
+                            results.transactions.forEach(function(result) {
+                                updateTxs.push(result);
+                            });
+                        })
+                        .then(function() {
+                            settingsService.glideraTransactions = updateTxs.map(function(updateTx) {
+                                return {
+                                    transactionUuid: updateTx.transactionUuid,
+                                    transactionHash: updateTx.transactionHash,
+                                    qty: updateTx.qty,
+                                    status: updateTx.status,
+                                    price: updateTx.price,
+                                    total: updateTx.total,
+                                    currency: updateTx.currency
+                                };
+                            });
+
+                            return settingsService.$store().then(function() {
+                                return settingsService.$syncSettingsUp().then(function() {
+                                    return true;
+                                });
+                            });
+                        })
+                        ;
+                } else {
+                    return false;
+                }
+            })
+                .then(function(r) { return r; }, function(e) { $log.error('updateAllTransactions ' + e); })
+                .then(function(r) {
+                    $updateStatus.resolve();
+                    if (r) {
+                        $timeout(updatePendingTransactions, 10000);
+                    } else {
+                        $timeout(updateAllTransactions, 10000);
+                    }
+                })
+                ;
+        };
+        // updateAllTransactions(); // @TODO: DEBUG
+        updatePendingTransactions();
+
+        Wallet.addTransactionMetaResolver(function(transaction) {
+            return $updateStatus.promise.then(function() {
+                settingsService.glideraTransactions.forEach(function(glideraTxInfo) {
+                    if (glideraTxInfo.transactionHash === transaction.hash) {
+                        transaction.buybtc = {
+                            broker: 'glidera',
+                            qty: glideraTxInfo.qty,
+                            currency: glideraTxInfo.currency,
+                            price: glideraTxInfo.price
+                        };
+                    }
+                });
+
+                return transaction;
+            });
+        });
+
         return {
+            $updateStatus: function() {
+                return $updateStatus.promise;
+            },
+            setClientId: setClientId,
             createRequest: createRequest,
             oauth2: oauth2,
             setup: setup,

@@ -121,6 +121,12 @@ angular.module('blocktrail.wallet').factory(
             return self.client.get("/mywallet/settings");
         };
 
+        blocktrailSDK.prototype.glideraOauth = function (code, redirect_uri, sandbox) {
+            var self = this;
+
+            return self.client.post("/mywallet/glidera/oauth", null, {code: code, redirect_uri: redirect_uri, sandbox: sandbox});
+        };
+
         /**
          * send feedback
          * @param identifier
