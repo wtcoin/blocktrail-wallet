@@ -141,7 +141,11 @@ angular.module('blocktrail.wallet').factory(
                                         return settingsService.$store().then(function() {
                                             $log.debug('SAVED');
                                             return settingsService.$syncSettingsUp();
-                                        });
+                                        })
+                                            .then(function() {
+                                                updateAllTransactions();
+                                            })
+                                        ;
                                     })
                                     .then(function() {
                                         $ionicLoading.hide();
@@ -491,7 +495,7 @@ angular.module('blocktrail.wallet').factory(
 
             _update();
         };
-        var updateAllTransactions = function() {
+        var updateAllTransactions = function(initLoop) {
             $updateStatus = $q.defer();
 
             return $q.when(decryptedAccessToken).then(function(accessToken) {
@@ -532,10 +536,13 @@ angular.module('blocktrail.wallet').factory(
                 .then(function(r) { return r; }, function(e) { $log.error('updateAllTransactions ' + e); })
                 .then(function(r) {
                     $updateStatus.resolve();
-                    if (r) {
-                        $timeout(updatePendingTransactions, 10000);
-                    } else {
-                        $timeout(updateAllTransactions, 10000);
+
+                    if (initLoop) {
+                        if (r) {
+                            $timeout(updatePendingTransactions, 10000);
+                        } else {
+                            $timeout(updateAllTransactions, 10000);
+                        }
                     }
                 })
                 ;
