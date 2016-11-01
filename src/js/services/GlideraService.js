@@ -270,7 +270,6 @@ angular.module('blocktrail.wallet').factory(
                     }
 
                     var promptForPin = function() {
-                        console.log('promptForPin');
                         return $cordovaDialogs.prompt(
                             $translate.instant('MSG_BUYBTC_PIN_TO_DECRYPT').sentenceCase(),
                             $translate.instant('MSG_ENTER_PIN').sentenceCase(),
@@ -280,21 +279,19 @@ angular.module('blocktrail.wallet').factory(
                             "tel"   //input type (uses html5 style)
                         )
                             .then(function(dialogResult) {
-                                console.log('dialogResult');
                                 if (dialogResult.buttonIndex == 2) {
                                     return $q.reject('CANCELLED');
                                 }
 
                                 return dialogResult.input1;
                             }, function(err) {
-                                console.log('dialogErr ' + err);
+                                $log.error('dialogErr ' + err);
                             });
                     };
 
                     var decryptAccessToken = function() {
-                        console.log('decryptAccessToken');
+                        $log.debug('decryptAccessToken');
                         return promptForPin().then(function(pin) {
-                            console.log('pin');
                             //decrypt password with the provided PIN
                             $ionicLoading.show({
                                 template: "<div>{{ 'WORKING' | translate }}...</div><ion-spinner></ion-spinner>",
@@ -302,7 +299,6 @@ angular.module('blocktrail.wallet').factory(
                             });
 
                             return Wallet.unlockData(pin).then(function(unlockData) {
-                                console.log('unlockData');
                                 // still gotta support legacy wallet where we encrypted the password instead of secret
                                 var accessToken;
                                 if (unlockData.secret) {
@@ -315,7 +311,7 @@ angular.module('blocktrail.wallet').factory(
 
                                 return accessToken;
                             }, function(err) {
-                                console.log('decryptAccessToken AGAIN');
+                                $log.debug('decryptAccessToken AGAIN');
                                 return decryptAccessToken();
                             })
                                 .then(function(r) {
@@ -332,11 +328,9 @@ angular.module('blocktrail.wallet').factory(
                     return decryptAccessToken();
                 })
                     .then(function(r) {
-                        console.log('DONE');
                         accessTokenPromise = null;
                         def.resolve(r);
                     }, function(err) {
-                        console.log('DONE ERR');
                         accessTokenPromise = null;
                         $log.debug(err);
                         def.reject(err);

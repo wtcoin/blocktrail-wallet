@@ -116,6 +116,7 @@ angular.module('blocktrail.wallet')
         $scope.resetBuyBTC = function() {
             return settingsService.$isLoaded().then(function() {
                 settingsService.glideraAccessToken = null;
+                settingsService.glideraTransactions = [];
                 settingsService.buyBTCRegion = null;
 
                 return settingsService.$store().then(function() {
@@ -272,23 +273,27 @@ angular.module('blocktrail.wallet')
 
             return glideraService.accessToken()
                 .then(function(accessToken) {
-                    $ionicLoading.hide();
-                    if (!accessToken) {
-                        $ionicLoading.hide();
-                        $state.go('app.wallet.buybtc.choose');
-                        return;
-                    }
+                    $timeout(function() { // timeout to make sure loading screen hides properly
 
-                    // update main price for display straight away
-                    updateMainPrice();
+                        if (!accessToken) {
+                            $ionicLoading.hide();
+                            $state.go('app.wallet.buybtc.choose');
+                            return;
+                        }
 
-                    // update every minute
-                    $interval(function() {
-                        // update main price
+                        // update main price for display straight away
                         updateMainPrice();
-                        // update input price
-                        updateInputPrice();
-                    }, 60 * 1000);
+
+                        $ionicLoading.hide();
+
+                        // update every minute
+                        $interval(function() {
+                            // update main price
+                            updateMainPrice();
+                            // update input price
+                            updateInputPrice();
+                        }, 60 * 1000);
+                    });
                 }, function(err) {
                     $ionicLoading.hide();
                     $state.go('app.wallet.buybtc.choose');
